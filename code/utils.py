@@ -1,5 +1,8 @@
 import torch
+import matplotlib
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 
 def rand_pairs(data, labels):
     perm = torch.randperm(data.size(0))
@@ -14,14 +17,14 @@ def graph_loss(losses):
 
 def graph_points(points, labels, iteration):
     points = points.cpu().detach().numpy()
-    print(points.shape)
     x1 = points[:, 0]
     x2 = points[:, 1]
     x3 = points[:, 2]
-    print(x1)
-    print(x2)
-    print(x3)
-    y = labels.cpu().detach().numpy()
-    plt.scatter(x1, x2,x3)
+    y = np.squeeze(labels.cpu().detach().numpy())
+
+    colors = ['red', 'blue']
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.scatter(x1, x2, x3, c=y, cmap=matplotlib.colors.ListedColormap(colors))
     plt.show()
 

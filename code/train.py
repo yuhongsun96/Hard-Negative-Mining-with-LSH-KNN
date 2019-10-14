@@ -6,7 +6,7 @@ mode = torch.device('cuda')
 
 # Parameters
 learn_rate = 1e-12
-iterations = 5000
+iterations = 100000
 loss_margin = 500           # Margin for Contrastive Loss
 graph_freq = 50             # How often to generate data for graphing
 pair_selection = "random"   # random, knn, or lsh
@@ -105,4 +105,5 @@ for it in range(iterations):
     if it % (iterations/2) == 0:
         utils.graph_points(results, labels, it)
 
+utils.graph_points(results, labels, it)
 utils.graph_loss(losses)
