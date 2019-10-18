@@ -104,7 +104,7 @@ def graph_loss(losses, pair_selection):
 
 
 # Visualize Neural Net output in 3D space
-def graph_points(points, labels, iteration, fname):
+def graph_points(points, labels, fname):
     points = points.cpu().detach().numpy()
     x1 = points[:, 0]
     x2 = points[:, 1]

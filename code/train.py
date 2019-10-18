@@ -16,8 +16,8 @@ data_file = "../data/1000exp20d.csv"
 data_file = "../data/1000exp20d.csv"
 
 # Parameters
-learn_rate = 3e-5
-iterations = 10000
+learn_rate = 1e-4
+iterations = 5000
 loss_margin = 50            # Margin for Contrastive Loss
 pair_selection = "random"      # random, knn, or lsh
 
@@ -102,11 +102,8 @@ for it in range(iterations):
         accumulator = 0
 
     if it % round(iterations / (checkpoints + 1)) == 0:
-        if it == 0:
-            utils.graph_points(results, labels, it, pair_selection + "_initial")
-        else:
-            checkpoint_count += 1
-            utils.graph_points(results, labels, it, pair_selection + "_" + str(checkpoint_count))
+        utils.graph_points(results, labels, pair_selection + "_" + str(checkpoint_count))
+        checkpoint_count += 1
 
-utils.graph_points(results, labels, it, pair_selection + "_final")
+utils.graph_points(results, labels, pair_selection + "_final")
 utils.graph_loss(losses, pair_selection)
