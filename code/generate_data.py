@@ -1,7 +1,7 @@
 import random
 
-num_pts = 100    #Number of points
-data_d = 10       #Dimension of data points
+num_pts = 10000    #Number of points
+data_d = 100       #Dimension of data points
 
 #Generate the points under the data directory
 file_name = str(num_pts) + "exp" + str(data_d) + "d.csv"
