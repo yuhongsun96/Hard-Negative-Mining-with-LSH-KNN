@@ -6,23 +6,22 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import utils
 
-# cuda for GPU, cpu for CPU
-mode = torch.device('cuda')
-
 # Input file, first column are labels, rest are values for dimensions
-data_file = "../data/1000exp20d.csv"
-
-# Input file, first column are labels, rest are values for dimensions
-data_file = "../data/1000exp20d.csv"
-
-# Parameters
-learn_rate = 1e-4
-iterations = 5000
-loss_margin = 50            # Margin for Contrastive Loss
-pair_selection = "random"      # random, knn, or lsh
+data_file = "../data/100exp10d.csv"
 
 # Number of intermediate checkpoints to graph
 checkpoints = 6
+
+# cuda for GPU, cpu for CPU
+mode = torch.device('cuda')
+
+# Parameters
+learn_rate = 1e-4
+iterations = 10000
+loss_margin = 50            # Margin for Contrastive Loss
+momentum = 0.9              # Gradient Descent Momentum
+pair_selection = "random"      # random, knn, or lsh
+
 
 # Reading Data
 print("Preparing Data")
@@ -34,7 +33,7 @@ for ind, line in enumerate(open(data_file)):
 data = np.column_stack(data)
 labels = np.column_stack(labels)
 
-# Numpy matrices to torch tensor of Float type
+# Change Numpy matrices to torch tensors of type Float
 labels = torch.tensor(labels.transpose()).to(torch.float)
 data = torch.tensor(data.transpose()).to(torch.float)
 
@@ -42,65 +41,80 @@ data = torch.tensor(data.transpose()).to(torch.float)
 if mode == torch.device('cuda'):
     data = data.cuda()
     labels = labels.cuda()
-    
-# NN Architecture
-print("Initializing Neural Net")
+
+# Create Neural Net
+print("Preparing Model")
+# Define layer widths
 D_in, D_1, D_2, D_3, D_4, D_out = data.shape[1], 100, 50, 25, 10, 3
 
-# Initial weights
-w1 = torch.nn.init.xavier_uniform_(torch.randn(D_in, D_1, device=mode, requires_grad=True))
-w2 = torch.nn.init.xavier_uniform_(torch.randn(D_1, D_2, device=mode, requires_grad=True))
-w3 = torch.nn.init.xavier_uniform_(torch.randn(D_2, D_3, device=mode, requires_grad=True))
-w4 = torch.nn.init.xavier_uniform_(torch.randn(D_3, D_4, device=mode, requires_grad=True))
-w5 = torch.nn.init.xavier_uniform_(torch.randn(D_4, D_out, device=mode, requires_grad=True))
+# Define Model Architecture
+model = torch.nn.Sequential(
+    torch.nn.Linear(D_in, D_1),
+    torch.nn.ReLU(),
+    torch.nn.Linear(D_1, D_2),
+    torch.nn.ReLU(),
+    torch.nn.Linear(D_2, D_3),
+    torch.nn.ReLU(),
+    torch.nn.Linear(D_3, D_4),
+    torch.nn.ReLU(),
+    torch.nn.Linear(D_4, D_out),
+)
+# Put on gpu if mode cuda
+if mode == torch.device('cuda'):
+    model.cuda()
 
-# Train Network
+# Define Optimizer
+optimizer = torch.optim.SGD(model.parameters(), lr=learn_rate, momentum=momentum)
+
+# Training
 print("Commence Learning!!!")
 accumulator = 0
 losses = []
 lsh_hash_ptr = 0
 checkpoint_count = 0
+easy_learning = 1
 for it in range(iterations):
-    # Forward Pass
-    results = data.mm(w1).clamp(min=0).mm(w2).clamp(min=0).mm(w3).clamp(min=0).mm(w4).clamp(min=0).mm(w5)
+    # Zero gradients
+    optimizer.zero_grad()
     
-    #Loss Calculation
-    if pair_selection == 'random':    
+    # Forward pass
+    results = model(data)
+    
+    # Pair selection
+    if easy_learning or pair_selection == 'random':    
         if_same, euclidean_dist = utils.rand_pairs(results, labels)
     elif pair_selection == 'knn':
         if_same, euclidean_dist = utils.knn_pairs(results, labels, it, mode)
     elif pair_selection == 'lsh':
         if_same, euclidean_dist, lsh_hash = utils.lsh_pairs(results, labels, it, lsh_hash_ptr)
         
+    # Loss Calculation
     loss = torch.mean((if_same) * torch.pow(euclidean_dist, 2) +
             (1 - if_same) * torch.pow(torch.clamp(loss_margin - euclidean_dist, min=0), 2))
-    
     accumulator += loss.item()
 
-    #Backward Pass
+    # Backward pass
     loss.backward()
+    optimizer.step()
     
-    with torch.no_grad():
-        # Update Gradients
-        w1 -= learn_rate * w1.grad
-        w2 -= learn_rate * w2.grad
-        w3 -= learn_rate * w3.grad
-        w4 -= learn_rate * w4.grad
-        w5 -= learn_rate * w5.grad
-
-        # Manually zero the gradients after running the backward pass
-        w1.grad.zero_(); w2.grad.zero_(); w3.grad.zero_(); w4.grad.zero_(); w5.grad.zero_()
-
+    # Print averaged losses to keep track of progress
     if it % 100 == 0:
         if it == 0:
-            print("Iteration:", it, "\t|\tInitial Loss:", round(accumulator))
+            print("Iteration:", it, "\t|\tInitial Loss:", accumulator)
             losses.append(accumulator)
         else:
             avg_loss = accumulator / 100
-            print("Iteration:", it, "\t|\tAverage Loss (last 100):", round(avg_loss))
+            print("Iteration:", it, "\t|\tAverage Loss (last 100):", avg_loss)
             losses.append(avg_loss)
+            # If average loss drops below threshold, begin using hard negative mining
+            if avg_loss < 10 and easy_learning:
+                utils.graph_points(results, labels, "Easy_Learning_Final")
+                easy_learning = 0
+                if pair_selection != 'random':
+                    print("Switch pair selection from random to", pair_selection)
         accumulator = 0
-
+    
+    # Create checkpoing graphs to view feature space evolution
     if it % round(iterations / (checkpoints + 1)) == 0:
         utils.graph_points(results, labels, pair_selection + "_" + str(checkpoint_count))
         checkpoint_count += 1
