@@ -15,7 +15,7 @@ By the default the code runs in cuda mode, if cuda is not available on your syst
 - The input dimensions can vary allowing for more flexible uses.
 - The output is 3D for visualizing the changes in the feature space as training progresses.
 - Since the data used for the demo is randomly generated with no actual underlying pattern, there is no training/test split.
-  The purpose is to demonstrate the benefits of different example/pair selection methods.
+  The purpose is to demonstrate the benefits at training time of different example/pair selection methods.
   
 ### Results (10/22/19):
 - Replaced manually upgrading gradients with torch SGD with momentum 0.9 to help KNN model overcome getting stuck in places with small gradients.
