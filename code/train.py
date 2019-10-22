@@ -20,7 +20,7 @@ learn_rate = 1e-4
 iterations = 10000
 loss_margin = 50            # Margin for Contrastive Loss
 momentum = 0.9              # Gradient Descent Momentum
-pair_selection = "random"      # random, knn, or lsh
+pair_selection = "knn"      # random, knn, or lsh
 
 
 # Reading Data
@@ -30,10 +30,12 @@ labels = []
 for ind, line in enumerate(open(data_file)):
     labels.append(np.array(int(line[0])))
     data.append(np.array(np.fromstring(line.split(',', 1)[1], sep = ',')))
+
+# Convert data to numpy representation
 data = np.column_stack(data)
 labels = np.column_stack(labels)
 
-# Change Numpy matrices to torch tensors of type Float
+# Change numpy matrices to torch tensors of type Float
 labels = torch.tensor(labels.transpose()).to(torch.float)
 data = torch.tensor(data.transpose()).to(torch.float)
 
@@ -59,7 +61,7 @@ model = torch.nn.Sequential(
     torch.nn.ReLU(),
     torch.nn.Linear(D_4, D_out),
 )
-# Put on gpu if mode cuda
+# Move to GPU if mode is CUDA
 if mode == torch.device('cuda'):
     model.cuda()
 

@@ -16,36 +16,41 @@ def rand_pairs(data, labels):
 
 # Use GPU KNN to select furthest points of the same group
 def knn_pairs(data, labels, it, mode):
-    # Get furthest points of the same group
-    # indices where label is 0 or 1
+    # indices where label is 0 and indices where label is 1
     ind0 = torch.where(labels == 0)[0]
     ind1 = torch.where(labels == 1)[0]
-    # data points where label is 0 or 1
+    # data points where label is 0 and points where label is 1
     data0 = data[ind0]
     data1 = data[ind1]
+    
     # convert to numpy representation formatted for KNN lib
     ref0 = data0.cpu().detach().numpy().flatten("F")
     ref1 = data1.cpu().detach().numpy().flatten("F")
     ref0_size = int(len(ref0) / 3)
     ref1_size = int(len(ref1) / 3)
+    
     # indices for k-neighbors for sets of points with label 0 or 1
     knn0 = list(pyKNN.gpu_knn(ref0, ref0, 3, ref0_size))
     knn1 = list(pyKNN.gpu_knn(ref1, ref1, 3, ref1_size))
     # indices in the sets of points with label 0 or 1, corresponding to furthest point of that set
     furthest0 = knn0[-ref0_size:]
     furthest1 = knn1[-ref1_size:]
+    
+    # calculate euclidean distances
     dists0 = torch.sum((data0 - data0[furthest0]) ** 2, 1)
     dists1 = torch.sum((data1 - data1[furthest1]) ** 2, 1)
     dists = torch.cat((dists0, dists1), 0)
     equals = torch.ones(labels.shape)
+    
+    # return gpu tensors if mode is cuda
     if mode == torch.device('cuda'):
         equals = equals.cuda()
         dists = dists.cuda()
+        
     return equals, dists
 
 
-# Use GPU LSH to select approximate hard examples
-# scales better than KNN since no need to compare every pair
+# Use GPU LSH to select approximate hard examples, expected to scale better to large data sets
 def lsh_pairs(data, labels, it, hash_ptr):
     #TODO complete this function
     raise NotImplementedError
