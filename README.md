@@ -5,6 +5,7 @@ A demo of Hard Negative Mining using a simple feed forward neural net with contr
 
 If the libraries knn_lib.so or lsh_lib.so do not work on your platform, compile it from:
 https://github.com/yuhongsun96/Python-GPU-KNN
+
 https://github.com/yuhongsun96/Python-GPU-LSH
 
 By the default the code runs in cuda mode, if cuda is not available on your system, change: mode = torch.device('cpu')
